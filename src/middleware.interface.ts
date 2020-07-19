@@ -16,11 +16,15 @@ export interface IHandlerData {
     context: any
     callback: any
     response: IResponse
-    error: IResponse
+    errorHandlers: IMiddlewareErrorHandler[]
 }
 
 export interface IResponse {
     status?: number
     body?: object | string
     headers?: object
+}
+
+export interface IMiddlewareErrorHandler {
+    (error: Error, context: IHandlerData): void
 }

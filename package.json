@@ -20,6 +20,8 @@
     "typescript": "^3.9.7"
   },
   "dependencies": {
-    "csv-writer": "^1.6.0"
+    "core-js": "^3.6.5",
+    "csv-writer": "^1.6.0",
+    "regenerator-runtime": "^0.13.5"
   }
 }
