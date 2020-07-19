@@ -1,4 +1,4 @@
-# Validation Chain
+# Middleware Chain
 
 Clone repo and run
 `npm install`
@@ -20,70 +20,60 @@ npm run watch
 
 ## Example
 
-*Define Schema*
 ```typescript
-const validateObj: IValidateParams = {
-    aString: {
-        required: true,
-        isType: 'string'
-    },
-    aStringTwo: {
-        required: true,
-        isType: 'string'
-    },
-    aStringThree: {
-        required: true,
-        isType: 'string',
-        minLength: 3,
-        maxLength: 5,
-    },
-    aStringFour: {
-        required: false,
-        isType: 'string'
-    },
-    aNumber: {
-        required: true,
-        isType: 'number',
-        minValue: 10,
-        maxValue: 100
-    },
-}
-```
+const mw = makeMiddleware(async (event: any, context: any, callback: any) => {
+    console.log('run here');
+    return {statusCode: 200, body: event}
+});
 
-*Example with some errors*
-```typescript
-const invalidObj: any = {
-    aStringTwo: 14214,
-    aStringThree: 'asfasfsasaf',
-    aStringFour: 'asfas',
-    aNumber: 12345
-}
+mw.add(async (context: IHandlerData, next: any) => {
+    if(Math.random() > 0.9) {
+        throw new ErrorResponse(403, {error: 'Not Authorised'})
+    }
+    await next();
+})
 
-// Chaining the validators using `.add()` fluent method.
-let someErrors = validationChain()
-    .add(required)
-    .add(isType)
-    .add(minValue)
-    .add(maxValue)
-    .add(minLength)
-    .add(maxLength)
-    .validate(invalidObj, validateObj);
+mw.add(async (context: IHandlerData, next: any) => {
+    console.log('1');
+    console.log(context);
+    context.errorHandlers.push(() => console.log('Deinit Something'))
+    await next();
+    console.log('4');
+});
 
-console.log('some errors', someErrors);
-```
+mw.add(async (context: IHandlerData, next: any) => {
+    console.log('2');
+    context.event = {two: "blah2"};
+    console.log(context);
+    await next();
+    console.log('3');
+    context.response.headers = {
+        'Access-Control-Allow-Origin': '*',
+        ...context.response.headers
+    }
+});
 
-*Example with no errors*
-```typescript
-const validObj: any = {
-    aString: 'asfasf',
-    aStringTwo: '1421asasf4',
-    aStringThree: 'asfas',
-    aNumber: 80
-}
+mw.add(async (context: IHandlerData, next: any) => {
+    await next();
+    if(Math.random() > 0.6) {
+        throw new ErrorResponse(400, {error: 'Something randomly broke'})
+    }
+    context.response.headers = {
+        'Access-Control-Allow-Origin': '*',
+        ...context.response.headers
+    }
+})
 
-// Chaining the validators by passing them in as parameters.
-let noErrors = validationChain(required, isType, minValue, maxValue, minLength, maxLength)
-    .validate(validObj, validateObj);
+mw.add(async (context: IHandlerData, next: any) => {
+    await next();
+    context.response.headers = {
+        'Content-Type': 'application/json',
+        ...context.response.headers
+    };
+    context.response.body = context.response?.body && typeof context.response!.body !== 'string'
+        ? JSON.stringify(context.response.body)
+        : ''
+})
 
-console.log('no errors: ', noErrors);
+mw.handler()({}, {}, () => {}).then((response) => console.log(response))
 ```

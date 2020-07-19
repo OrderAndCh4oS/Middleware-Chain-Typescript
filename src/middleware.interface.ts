@@ -20,7 +20,7 @@ export interface IHandlerData {
 }
 
 export interface IResponse {
-    status?: number
+    statusCode?: number
     body?: object | string
     headers?: object
 }
